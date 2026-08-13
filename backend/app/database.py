@@ -13,6 +13,7 @@
 #  the database".
 # ============================================================
 
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -24,21 +25,21 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 #  `signal_clone.db` next to where the server is started from.
 #  (For this project we deliberately keep it simple with SQLite;
 #  swapping to Postgres later would just mean changing this URL.)
-DATABASE_URL = "sqlite:///./signal_clone.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./signal_clone.db")
 
-# ------------------------------------------------------------------
-# 2. ENGINE
-# ------------------------------------------------------------------
-#  The engine is the lowest-level connection to the database.
-#  SQLAlchemy uses it to open connections, run SQL, and fetch rows.
-#
-#  `connect_args={"check_same_thread": False}` is a SQLite-specific
-#  setting. By default SQLite only allows a connection to be used
-#  from the thread that created it. FastAPI runs request handlers
-#  in a thread pool, so we disable that check to avoid errors.
+# Some cloud providers use postgres:// but SQLAlchemy requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# SQLite requires check_same_thread=False, Postgres does not.
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+else:
+    connect_args = {}
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args,
 )
 
 # ------------------------------------------------------------------
