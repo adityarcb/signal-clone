@@ -1,0 +1,14 @@
+# ============================================================
+#  Signal Clone - Backend Dependencies
+# ============================================================
+#  Phase 1 only needs SQLAlchemy (for the ORM models) and the
+#  SQLite driver (which ships with Python, so nothing extra).
+#  FastAPI + Uvicorn are listed now because Phase 2/3 will need
+#  them, but you can install everything at once.
+#
+#  Install with:  pip install -r requirements.txt
+# ============================================================
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+SQLAlchemy==2.0.36
