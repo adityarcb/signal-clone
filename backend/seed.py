@@ -25,10 +25,9 @@
 from datetime import datetime, timedelta
 import random
 
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.database import Base, DATABASE_URL
+from app.database import Base, DATABASE_URL, engine, SessionLocal
 from app.models import User, Conversation, ConversationParticipant, Message, MessageStatus
 
 
@@ -205,13 +204,10 @@ def main():
     print("=" * 60)
 
     # ------------------------------------------------------------------
-    # STEP 1: Create engine and session
+    # STEP 1: Connect to database
     # ------------------------------------------------------------------
-    #  We create a fresh engine here (instead of importing from database.py)
-    #  because this script may run before the app ever starts.
-    print("\n[1/4] Creating database engine...")
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    print("[1/4] Connecting to database...")
+    # Engine and SessionLocal are already configured in app.database
 
     # ------------------------------------------------------------------
     # STEP 2: Create all tables
