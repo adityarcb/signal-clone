@@ -55,6 +55,23 @@ class UserResponse(BaseModel):
 # ------------------------------------------------------------------
 # AUTH SCHEMAS
 # ------------------------------------------------------------------
+class RegisterRequest(BaseModel):
+    """Request body for POST /auth/register."""
+    phone_number: str = Field(..., description="User's phone number")
+
+
+class OTPVerifyRequest(BaseModel):
+    """Request body for POST /auth/verify-otp."""
+    phone_number: str
+    code: str
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Request body for PUT /auth/profile."""
+    display_name: str = Field(..., min_length=1, max_length=100)
+    avatar_url: Optional[str] = None
+
+
 class LoginRequest(BaseModel):
     """Request body for POST /auth/login."""
     phone_number: str = Field(..., description="User's phone number")
@@ -76,6 +93,8 @@ class ConversationParticipantResponse(BaseModel):
     display_name: str
     avatar_url: Optional[str] = None
     is_admin: bool = False
+    is_online: bool = False
+    last_seen: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -114,6 +133,11 @@ class ConversationDetailResponse(ConversationResponse):
     messages: List[MessageResponse] = []
 
 
+class CreateDirectRequest(BaseModel):
+    """Request body for POST /conversations/direct."""
+    target_user_id: int
+
+
 # ------------------------------------------------------------------
 # GROUP SCHEMAS
 # ------------------------------------------------------------------
@@ -121,6 +145,11 @@ class CreateGroupRequest(BaseModel):
     """Request body for POST /groups."""
     name: str = Field(..., min_length=1, max_length=100)
     participant_ids: List[int] = Field(..., min_items=2)
+
+
+class AddMemberRequest(BaseModel):
+    """Request body for POST /groups/{id}/members."""
+    user_id: int
 
 
 class GroupResponse(BaseModel):

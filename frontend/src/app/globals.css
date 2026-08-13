@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --signal-blue: #3a76f0;
   --signal-blue-dark: #2c5dd1;

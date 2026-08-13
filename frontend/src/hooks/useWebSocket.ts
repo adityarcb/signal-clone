@@ -18,10 +18,10 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/store/appStore';
 import type { WebSocketMessage, Message, TypingIndicator } from '@/types';
 
-const WS_URL = 'ws://127.0.0.1:8000/ws';
+const WS_URL = 'ws://localhost:8000/ws';
 
 export function useWebSocket() {
-  const { token, isConnected, setConnected, addMessage, updateMessageStatus, setTyping, clearTyping } = useAppStore();
+  const { token, currentUser, activeConversationId, isConnected, setConnected, addMessage, updateMessageStatus, setTyping, clearTyping, updateUserPresence } = useAppStore();
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,7 +54,7 @@ export function useWebSocket() {
     };
     
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.warn('WebSocket error:', error);
     };
     
     ws.onmessage = (event) => {
@@ -74,6 +74,22 @@ export function useWebSocket() {
       case 'chat':
         const chatData = message.data as unknown as Message;
         addMessage(chatData);
+        
+        // Send read receipt if it's from someone else
+        if (currentUser && chatData.sender_id !== currentUser.id) {
+          const isViewing = activeConversationId === chatData.conversation_id;
+          const newStatus = isViewing ? 'read' : 'delivered';
+          
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'status_update',
+              data: {
+                message_id: chatData.id,
+                status: newStatus
+              }
+            }));
+          }
+        }
         break;
         
       case 'typing':
@@ -89,8 +105,13 @@ export function useWebSocket() {
         const statusData = message.data as { message_id: number; status: string };
         updateMessageStatus(statusData.message_id, statusData.status);
         break;
+
+      case 'presence_update':
+        const presenceData = message.data as { user_id: number; is_online: boolean; last_seen: string };
+        updateUserPresence(presenceData.user_id, presenceData.is_online, presenceData.last_seen);
+        break;
     }
-  }, [addMessage, setTyping, clearTyping, updateMessageStatus]);
+  }, [addMessage, setTyping, clearTyping, updateMessageStatus, updateUserPresence, currentUser, activeConversationId]);
   
   const send = useCallback((message: WebSocketMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

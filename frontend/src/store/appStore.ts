@@ -59,6 +59,7 @@ interface AppState {
   setConnected: (connected: boolean) => void;
   setTyping: (conversationId: number, typing: TypingIndicator) => void;
   clearTyping: (conversationId: number, userId: number) => void;
+  updateUserPresence: (userId: number, isOnline: boolean, lastSeen: string) => void;
   
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -95,7 +96,12 @@ export const useAppStore = create<AppState>()(
       // Conversation actions
       setConversations: (conversations) => set({ conversations }),
       
-      setActiveConversationId: (id) => set({ activeConversationId: id }),
+      setActiveConversationId: (id) => set((state) => ({ 
+        activeConversationId: id,
+        conversations: state.conversations.map(c => 
+          c.id === id ? { ...c, unread_count: 0 } : c
+        )
+      })),
       
       addConversation: (conversation) => set((state) => ({
         conversations: [conversation, ...state.conversations],
@@ -117,16 +123,29 @@ export const useAppStore = create<AppState>()(
           return state;
         }
         
+        const updatedConversations = state.conversations.map(c => {
+          if (c.id === message.conversation_id) {
+            const isOwnMessage = message.sender_id === state.currentUser?.id;
+            const isActive = c.id === state.activeConversationId;
+            const newUnreadCount = (isOwnMessage || isActive) ? 0 : (c.unread_count || 0) + 1;
+            
+            return { ...c, last_message: message, unread_count: newUnreadCount };
+          }
+          return c;
+        });
+        
+        updatedConversations.sort((a, b) => {
+          const timeA = a.last_message ? new Date(a.last_message.timestamp).getTime() : new Date(a.created_at).getTime();
+          const timeB = b.last_message ? new Date(b.last_message.timestamp).getTime() : new Date(b.created_at).getTime();
+          return timeB - timeA;
+        });
+        
         return {
           messages: {
             ...state.messages,
             [message.conversation_id]: [...existingMessages, message],
           },
-          conversations: state.conversations.map(c =>
-            c.id === message.conversation_id
-              ? { ...c, last_message: message }
-              : c
-          ),
+          conversations: updatedConversations,
         };
       }),
       
@@ -164,6 +183,22 @@ export const useAppStore = create<AppState>()(
             [conversationId]: existing.filter(t => t.user_id !== userId),
           },
         };
+      }),
+      
+      updateUserPresence: (userId, isOnline, lastSeen) => set((state) => {
+        const updatedConversations = state.conversations.map((conv) => {
+          const hasUser = conv.participants.some(p => p.user_id === userId);
+          if (!hasUser) return conv;
+          
+          return {
+            ...conv,
+            participants: conv.participants.map(p => 
+              p.user_id === userId ? { ...p, is_online: isOnline, last_seen: lastSeen } : p
+            )
+          };
+        });
+        
+        return { conversations: updatedConversations };
       }),
       
       // UI actions

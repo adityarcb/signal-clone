@@ -58,6 +58,48 @@ class ConnectionManager:
         self.active_connections: Dict[int, WebSocket] = {}
         # user_id -> set of conversation_ids they're viewing
         self.user_conversations: Dict[int, Set[int]] = {}
+
+    async def broadcast_presence(self, user_id: int, is_online: bool, last_seen: datetime):
+        db = SessionLocal()
+        try:
+            # Find all conversations this user is part of
+            user_convs = (
+                db.query(ConversationParticipant.conversation_id)
+                .filter(ConversationParticipant.user_id == user_id)
+                .all()
+            )
+            conv_ids = [c[0] for c in user_convs]
+            
+            if not conv_ids:
+                return
+                
+            # Find all other participants in these conversations
+            other_participants = (
+                db.query(ConversationParticipant.user_id)
+                .filter(ConversationParticipant.conversation_id.in_(conv_ids))
+                .filter(ConversationParticipant.user_id != user_id)
+                .distinct()
+                .all()
+            )
+            other_user_ids = [p[0] for p in other_participants]
+            
+            for other_id in other_user_ids:
+                if other_id in self.active_connections:
+                    await self.send_personal_message(
+                        {
+                            "type": "presence_update",
+                            "data": {
+                                "user_id": user_id,
+                                "is_online": is_online,
+                                "last_seen": last_seen.isoformat(),
+                            },
+                        },
+                        other_id,
+                    )
+        except Exception:
+            pass
+        finally:
+            db.close()
     
     async def connect(self, websocket: WebSocket, user_id: int):
         """
@@ -65,6 +107,7 @@ class ConnectionManager:
         
         If user already has a connection, close the old one.
         This ensures one connection per user.
+        Also updates the user's is_online status in the database.
         """
         await websocket.accept()
         
@@ -76,13 +119,44 @@ class ConnectionManager:
         
         self.active_connections[user_id] = websocket
         self.user_conversations[user_id] = set()
+        
+        # Update user's online status in the database
+        db = SessionLocal()
+        last_seen = datetime.utcnow()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                user.is_online = True
+                user.last_seen = last_seen
+                db.commit()
+        finally:
+            db.close()
+            
+        await self.broadcast_presence(user_id, True, last_seen)
     
-    def disconnect(self, user_id: int):
-        """Remove a user's connection when they disconnect."""
+    async def disconnect(self, user_id: int):
+        """
+        Remove a user's connection when they disconnect.
+        Also updates is_online to False and sets last_seen in the database.
+        """
         if user_id in self.active_connections:
             del self.active_connections[user_id]
         if user_id in self.user_conversations:
             del self.user_conversations[user_id]
+        
+        # Update user's offline status in the database
+        db = SessionLocal()
+        last_seen = datetime.utcnow()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                user.is_online = False
+                user.last_seen = last_seen
+                db.commit()
+        finally:
+            db.close()
+            
+        await self.broadcast_presence(user_id, False, last_seen)
     
     async def send_personal_message(self, message: dict, user_id: int):
         """Send a message to a specific user."""
@@ -90,7 +164,7 @@ class ConnectionManager:
             try:
                 await self.active_connections[user_id].send_json(message)
             except:
-                self.disconnect(user_id)
+                await self.disconnect(user_id)
     
     async def broadcast_to_conversation(
         self,
@@ -361,10 +435,43 @@ async def websocket_handler(websocket: WebSocket, user_id: int):
                 if conversation_id:
                     if is_viewing:
                         await manager.set_user_viewing(user_id, conversation_id)
+                        
+                        # Mark all unread messages from OTHER users as "read"
+                        # so the unread count resets in the database (persists on refresh)
+                        db = SessionLocal()
+                        try:
+                            unread_messages = (
+                                db.query(Message)
+                                .filter(
+                                    Message.conversation_id == conversation_id,
+                                    Message.sender_id != user_id,
+                                    Message.status != MessageStatus.read,
+                                )
+                                .all()
+                            )
+                            
+                            for msg in unread_messages:
+                                msg.status = MessageStatus.read
+                                # Broadcast status update to the sender
+                                await manager.send_personal_message(
+                                    {
+                                        "type": "status_update",
+                                        "data": {
+                                            "message_id": msg.id,
+                                            "status": "read",
+                                        },
+                                    },
+                                    msg.sender_id,
+                                )
+                            
+                            if unread_messages:
+                                db.commit()
+                        finally:
+                            db.close()
                     else:
                         await manager.remove_user_viewing(user_id, conversation_id)
     
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
+        await manager.disconnect(user_id)
     except Exception as e:
-        manager.disconnect(user_id)
+        await manager.disconnect(user_id)

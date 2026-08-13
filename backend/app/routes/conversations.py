@@ -29,7 +29,9 @@ from app.schemas import (
     ConversationResponse,
     ConversationDetailResponse,
     MessageResponse,
+    MessageResponse,
     ConversationParticipantResponse,
+    CreateDirectRequest,
 )
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
@@ -56,6 +58,8 @@ def build_conversation_response(
                 display_name=p.user.display_name,
                 avatar_url=p.user.avatar_url,
                 is_admin=p.is_admin,
+                is_online=p.user.is_online,
+                last_seen=p.user.last_seen,
             )
         )
     
@@ -74,7 +78,10 @@ def build_conversation_response(
                 status=msg.status,
             )
     
-    unread_count = 0
+    unread_count = sum(
+        1 for msg in conversation.messages
+        if msg.sender_id != current_user_id and msg.status.value != "read"
+    ) if conversation.messages else 0
     
     return ConversationResponse(
         id=conversation.id,
@@ -233,6 +240,8 @@ def get_conversation(
             display_name=p.user.display_name,
             avatar_url=p.user.avatar_url,
             is_admin=p.is_admin,
+            is_online=p.user.is_online,
+            last_seen=p.user.last_seen,
         )
         for p in conversation.participants
     ]
@@ -247,3 +256,57 @@ def get_conversation(
         last_message=messages_data[-1] if messages_data else None,
         unread_count=0,
     )
+
+
+@router.post("/direct", response_model=ConversationDetailResponse)
+def create_direct_conversation(
+    request: CreateDirectRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new 1:1 conversation or return existing one.
+    """
+    target_user = db.query(User).filter(User.id == request.target_user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found.")
+        
+    if target_user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot create conversation with yourself.")
+        
+    # Check if a 1:1 conversation already exists
+    # Find all non-group conversations for current user
+    user_convs = (
+        db.query(Conversation)
+        .join(ConversationParticipant)
+        .filter(
+            ConversationParticipant.user_id == current_user.id,
+            Conversation.is_group == False
+        )
+        .all()
+    )
+    
+    existing_conv = None
+    for conv in user_convs:
+        # Check if the target user is the other participant
+        participant_ids = [p.user_id for p in conv.participants]
+        if request.target_user_id in participant_ids:
+            existing_conv = conv
+            break
+            
+    if existing_conv:
+        return get_conversation(existing_conv.id, current_user, db)
+        
+    # Create new conversation
+    new_conv = Conversation(is_group=False)
+    db.add(new_conv)
+    db.commit()
+    db.refresh(new_conv)
+    
+    # Add participants
+    p1 = ConversationParticipant(conversation_id=new_conv.id, user_id=current_user.id, is_admin=False)
+    p2 = ConversationParticipant(conversation_id=new_conv.id, user_id=target_user.id, is_admin=False)
+    db.add_all([p1, p2])
+    db.commit()
+    
+    return get_conversation(new_conv.id, current_user, db)

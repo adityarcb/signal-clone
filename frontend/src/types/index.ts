@@ -23,6 +23,8 @@ export interface Participant {
   display_name: string;
   avatar_url: string | null;
   is_admin: boolean;
+  is_online: boolean;
+  last_seen: string | null;
 }
 
 export interface Message {

@@ -12,15 +12,26 @@ export const metadata: Metadata = {
   description: "A Signal-like messaging application",
 };
 
+import Toast from "@/components/Toast";
+import { ThemeProvider } from "@/components/ThemeProvider";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className={`${inter.variable} h-full bg-white font-sans`}>
-        {children}
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+      <body className={`${inter.variable} h-full bg-white dark:bg-gray-900 font-sans`} suppressHydrationWarning>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toast />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -31,7 +31,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-from app.schemas import LoginRequest, LoginResponse, UserResponse
+from app.schemas import (
+    LoginRequest, 
+    LoginResponse, 
+    UserResponse,
+    RegisterRequest,
+    OTPVerifyRequest,
+    ProfileUpdateRequest
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -139,4 +146,76 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     """Get the currently authenticated user's profile."""
+    return UserResponse.model_validate(current_user)
+
+
+@router.post("/register")
+def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Mock registration endpoint.
+    
+    If user exists, just pretend it sent an OTP anyway (for idempotency).
+    If user doesn't exist, create an empty user row (no display name yet).
+    """
+    user = db.query(User).filter(User.phone_number == request.phone_number).first()
+    
+    if not user:
+        user = User(
+            phone_number=request.phone_number,
+            display_name="Unknown", # Will be updated in profile setup
+        )
+        db.add(user)
+        db.commit()
+        
+    return {"message": "OTP sent successfully (mocked). Use 123456 to verify."}
+
+
+@router.post("/verify-otp", response_model=LoginResponse)
+def verify_otp(request: OTPVerifyRequest, db: Session = Depends(get_db)):
+    """
+    Mock OTP verification.
+    
+    Accepts any OTP (or just checks if it's '123456' for the mock).
+    Returns a login token just like the login endpoint.
+    """
+    if request.code != "123456":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP code. Use 123456.",
+        )
+        
+    user = db.query(User).filter(User.phone_number == request.phone_number).first()
+    
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found. Register first.",
+        )
+    
+    token = create_mock_token(user.id)
+    
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.put("/profile", response_model=UserResponse)
+def update_profile(
+    request: ProfileUpdateRequest, 
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update the current user's profile.
+    Typically used immediately after registration/OTP to set name and avatar.
+    """
+    current_user.display_name = request.display_name
+    if request.avatar_url is not None:
+        current_user.avatar_url = request.avatar_url
+        
+    db.commit()
+    db.refresh(current_user)
+    
     return UserResponse.model_validate(current_user)
