@@ -99,7 +99,7 @@ export function RegisterPage({ onLoginClick }: { onLoginClick: () => void }) {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+1234567890"
-                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 required
               />
             </div>
@@ -128,7 +128,7 @@ export function RegisterPage({ onLoginClick }: { onLoginClick: () => void }) {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="123456"
-                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-3 shadow-sm text-center tracking-widest focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-gray-100 shadow-sm text-center tracking-widest focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 required
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">For this demo, use code: 123456</p>
@@ -153,7 +153,7 @@ export function RegisterPage({ onLoginClick }: { onLoginClick: () => void }) {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Jane Doe"
-                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 required
               />
             </div>
