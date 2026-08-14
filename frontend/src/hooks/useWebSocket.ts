@@ -18,7 +18,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/store/appStore';
 import type { WebSocketMessage, Message, TypingIndicator } from '@/types';
 
-const WS_URL = 'ws://localhost:8000/ws';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
 
 export function useWebSocket() {
   const { token, currentUser, activeConversationId, isConnected, setConnected, addMessage, updateMessageStatus, setTyping, clearTyping, updateUserPresence } = useAppStore();
