@@ -284,7 +284,7 @@ export function ChatArea({ send }: { send: (msg: any) => void }) {
       {showGroupInfo && activeConversation.is_group && (
         <div className="absolute inset-y-0 right-0 z-20 shadow-2xl">
           <GroupInfoPanel
-            conversation={activeConversation}
+            conversation={{ ...activeConversation, messages: conversationMessages }}
             onClose={() => setShowGroupInfo(false)}
           />
         </div>

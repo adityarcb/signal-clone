@@ -58,7 +58,7 @@ export interface LoginResponse {
 }
 
 export interface WebSocketMessage {
-  type: 'chat' | 'typing' | 'status_update' | 'view_conversation';
+  type: 'chat' | 'typing' | 'status_update' | 'view_conversation' | 'presence_update';
   data: Record<string, unknown>;
 }
 

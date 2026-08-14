@@ -95,7 +95,7 @@ export function GroupInfoPanel({ conversation, onClose }: GroupInfoPanelProps) {
       <div className="flex flex-col items-center p-6 border-b border-gray-200 dark:border-gray-700">
         <img
           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name || 'Group')}&background=6366f1&color=fff&size=128`}
-          alt={conversation.name}
+          alt={conversation.name || 'Group'}
           className="h-24 w-24 rounded-full object-cover shadow-sm mb-4"
         />
         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{conversation.name}</h3>
