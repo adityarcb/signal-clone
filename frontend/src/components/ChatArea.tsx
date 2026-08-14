@@ -266,7 +266,7 @@ export function ChatArea({ send }: { send: (msg: any) => void }) {
               handleTyping();
             }}
             placeholder="Type a message"
-            className="flex-1 rounded-full bg-gray-100 px-4 py-2 text-sm placeholder-gray-500 dark:placeholder-gray-400 focus:bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 rounded-full bg-gray-100 dark:bg-gray-700 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           
           <button
