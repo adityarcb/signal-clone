@@ -194,7 +194,7 @@ export function ChatArea({ send }: { send: (msg: any) => void }) {
                     if (!other) return '';
                     if (other.is_online) return 'online';
                     if (other.last_seen) {
-                      return `last seen ${formatDistanceToNow(new Date(other.last_seen))} ago`;
+                      return `last seen ${formatDistanceToNow(other.last_seen)} ago`;
                     }
                     return 'offline';
                   })()}

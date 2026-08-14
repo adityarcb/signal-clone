@@ -96,7 +96,7 @@ export function ConversationList({
   
   const getLastMessageTime = (conv: Conversation): string => {
     if (!conv.last_message) return '';
-    return formatDistanceToNow(new Date(conv.last_message.timestamp));
+    return formatDistanceToNow(conv.last_message.timestamp);
   };
   
   const getLastMessagePreview = (conv: Conversation): string => {

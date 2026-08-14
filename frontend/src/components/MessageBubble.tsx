@@ -102,7 +102,7 @@ export function MessageBubble({ message, isOwn, showName = false }: MessageBubbl
           }`}
         >
           <span className="text-[11px] leading-none">
-            {formatTime(new Date(message.timestamp))}
+            {formatTime(message.timestamp)}
           </span>
           {isOwn && <MessageTicks status={message.status} />}
         </div>

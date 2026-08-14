@@ -1,4 +1,8 @@
-export function formatDistanceToNow(date: Date): string {
+export function formatDistanceToNow(dateInput: Date | string): string {
+  let date = dateInput as Date;
+  if (typeof dateInput === 'string') {
+    date = new Date(dateInput.endsWith('Z') ? dateInput : dateInput + 'Z');
+  }
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   
@@ -24,7 +28,11 @@ export function formatDistanceToNow(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function formatTime(date: Date): string {
+export function formatTime(dateInput: Date | string): string {
+  let date = dateInput as Date;
+  if (typeof dateInput === 'string') {
+    date = new Date(dateInput.endsWith('Z') ? dateInput : dateInput + 'Z');
+  }
   return date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
